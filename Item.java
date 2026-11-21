@@ -1,6 +1,7 @@
 import javax.swing.*;
 
 public class Item{
+    public String name = "Item";
     public ImageIcon image;
     public boolean locked;
     public boolean active;
@@ -14,7 +15,6 @@ public class Item{
         this.location = location;
         this.image = image;
         this.content = content;
-        content.speakerImage = this.image;
         active = true;
     }
 

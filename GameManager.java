@@ -1,121 +1,92 @@
-    import drawapp.DrawingPanel;
-    import javax.swing.ImageIcon;
-    import javax.swing.Timer;
+import drawapp.DrawingPanel;
+import javax.swing.ImageIcon;
+import javax.swing.Timer;
 
 
-    public class GameManager {
-        public static Room[] rooms = RoomManager.rooms;
-        public static Player player = new Player(new ImageIcon("images/player.png"));
+public class GameManager {
+    public static Room[] rooms = RoomManager.rooms;
+    public static Player player = new Player(new ImageIcon("images/detective.png"));
 
-        public static DrawingPanel panel = new DrawingPanel(679, 452);
-        
-        public static Room currRoom = rooms[0];
+    public static DrawingPanel panel = new DrawingPanel(679, 452);
 
-        public static int mouseX;
-        public static int mouseY;
+    public static Room currRoom = rooms[0];
 
-        public static double roomCooldown = 128;
+    public static int mouseX;
+    public static int mouseY;
 
-        public static boolean start = true;
+    public static double roomCooldown = 128;
+
+    public static boolean start = true;
+    public static boolean reviewingCase = false;
+    private static boolean introducedCase = false;
+    static StoryScene storyScene;
+    static int storyFrame;
 
 
-        public static DialougeManager currDialouge;
-        public static void main(String[] args){
+    public static DialougeManager currDialouge;
+    public static void main(String[] args){
+        panel.setFitToWindow(true);
 
-            panel.onMouseClick((x,y) -> {
-                if(!start){
-                    boolean isItem = false;
-                    for(Item i : currRoom.items){
-                        if(x >= i.location.x && x<=i.location.x+Item.BOUNDINGBOX && y >= i.location.y && y<=i.location.y+Item.BOUNDINGBOX){
-                            isItem = true;
-                            if(i.content != null){    
-                                currDialouge = i.content;
-                                GamePanel.drawDialouge(panel, currDialouge);
-                            }
-                            PlayerInventory.items.add(i);
-                            currRoom.items.remove(i);
-                        }
-                    }
-                    for(Clue c : currRoom.clues){
-                        if(x >= c.location.x && x<=c.location.x+Item.BOUNDINGBOX && y >= c.location.y && y<=c.location.y+Item.BOUNDINGBOX){
-                            isItem = true;
-                            if(c.content != null){    
-                                currDialouge = c.content;
-                                GamePanel.drawDialouge(panel, currDialouge);
-                            }
-                            PlayerInventory.clues.add(c);
-                            currRoom.clues.remove(c);
-                        }
-                    }
-                    if(!isItem){
-                        if(GamePanel.displayingDialouge){
-                            GamePanel.drawDialouge(panel, currDialouge);
-                        }
-                    }
-                    if(x>=10 && y>= 10 && x<=60 && y<=60){
-                        start = true;
-                    }
+        panel.onMouseClick(GameManager::handleClick);
+
+        panel.onMouseMove((x,y) -> {
+            mouseX = x;
+            mouseY = y;
+            updateHover();
+        });
+
+        double speed = 300.0;
+        double deltaTime = 1.0 / 60.0;
+
+        boolean[] keys = new boolean[2];
+        boolean[] interactKeyDown = new boolean[1];
+        boolean[] inventoryKeyDown = new boolean[1];
+        panel.onKeyDown(key -> {
+            if(storyScene != null) return;
+            if(PuzzleManager.isOpen()){
+                PuzzleManager puzzle = PuzzleManager.activeContainer.puzzle;
+                if(key == 27) PuzzleManager.close();
+                else if(key >= '0' && key <= '9') puzzle.digit(key);
+                else if(key == '\b' || key == 127) puzzle.backspace();
+                else if(key == '\n' || key == '\r') puzzle.submit();
+                return;
+            }
+            if(key == 'e'){
+                if(!interactKeyDown[0] && !start && !PlayerInventory.showing && !GamePanel.displayingDialouge && !PuzzleManager.isOpen()){
+                    tryExit();
                 }
-                else{
-                    if(x>= 260 && x<=360 && y>=260 && y<=310){
-                        start = false;
-                    }
+                interactKeyDown[0] = true;
+                return;
+            }
+            if(key == 'i'){
+                if(!inventoryKeyDown[0] && !start && !GamePanel.displayingDialouge && !PuzzleManager.isOpen()){
+                    PlayerInventory.showing = !PlayerInventory.showing;
+                    reviewingCase = false;
                 }
-            });
+                inventoryKeyDown[0] = true;
+                return;
+            }
+            if(!start && !PlayerInventory.showing && !GamePanel.displayingDialouge && !PuzzleManager.isOpen()){
+                if (key == 'a') keys[0] = true;
+                if (key == 'd') keys[1] = true;
+            }
+        });
 
-            panel.onMouseMove((x,y) -> {
-                mouseX = x;
-                mouseY = y;
-                GamePanel.isHovering = false;
-                GamePanel.hoveredItem = null;
-                for(Item i : currRoom.items){
-                    if(x >= i.location.x && x<=i.location.x+Item.BOUNDINGBOX && y >= i.location.y && y<=i.location.y+Item.BOUNDINGBOX){
-                        GamePanel.isHovering = true;
-                    }
-                }
-                
-                if(PlayerInventory.showing){
-                    if(GamePanel.iItems.size()>0){
-                        GamePanel.iItems.forEach((item, coord) -> {
-                            if(x>=coord.x && x<=coord.x+50 && y>=coord.y && y<=coord.y+50){
-                                GamePanel.hoveredItem = item.content;
-                            }
-                        });
-                    }
-                    if(GamePanel.cItems.size()>0){    
-                        GamePanel.cItems.forEach((item, coord) -> {
-                            if(x>=coord.x && x<=coord.x+50 && y>=coord.y && y<=coord.y+50){
-                                GamePanel.hoveredItem = item.content;
-                            }
-                        });
-                    }
-                }
-            
-            });
-            
-            double speed = 300.0;
-            double deltaTime = 1.0 / 60.0;
+        panel.onKeyUp(key -> {
+            if (key == 'i') inventoryKeyDown[0] = false;
+            if (key == 'a') keys[0] = false;
+            if (key == 'd') keys[1] = false;
+            if (key == 'e') interactKeyDown[0] = false;
+        });
 
-            boolean[] keys = new boolean[3]; 
-            panel.onKeyDown(key -> {
-                System.out.println("Key pressed: " + key);
-                if(!GamePanel.displayingDialouge){
-                    if (key == 'a') keys[0] = true;
-                    if (key == 'd') keys[1] = true;
-                    if (key == 'e') keys[2] = true;
-                    if (key == 'i') PlayerInventory.showing = !PlayerInventory.showing;
-                }
-            });
 
-            panel.onKeyUp(key -> {
-                if (key == 'a') keys[0] = false;
-                if (key == 'd') keys[1] = false;
-                if (key == 'e') keys[2] = false;
-            });
 
-            
-
-            Timer timer = new Timer(16, e -> {
+        Timer timer = new Timer(16, e -> {
+            GamePanel.nearExit = false;
+            if(start || storyScene != null || PlayerInventory.showing || GamePanel.displayingDialouge || PuzzleManager.isOpen()){
+                java.util.Arrays.fill(keys, false);
+            }
+            else{
                 roomCooldown -= 16;
                 if (keys[0]) {
                     player.position -= speed*deltaTime;
@@ -123,36 +94,253 @@
                 if (keys[1]) {
                     player.position += speed*deltaTime;
                 }
-                if(player.position < 50 || player.position > 450){
-                    if(player.position < 50){
-                        if(currRoom.left != null){
-                            GamePanel.nearExit = true;
-                            if(keys[2]==true && roomCooldown <= 0){
-                                currRoom = currRoom.left;
-                                player.position = 500;
-                                roomCooldown = 128;
-                            }
-                        }
-                    }
-                    else{
-                        if(currRoom.right != null){
-                            GamePanel.nearExit = true;
-                            if(keys[2] == true && roomCooldown <= 0){
-                                currRoom = currRoom.right;
-                                player.position = 10;
-                                roomCooldown = 128;
-                            }
-                        }
-                    }
-                } 
-                else {
-                    GamePanel.nearExit = false;
-                }
+                player.position = Math.max(0, Math.min(500, player.position));
+                GamePanel.nearExit = nearbyExit() != null;
 
-                GamePanel.drawGame(panel, currRoom, (int) player.position, GamePanel.currDialouge, mouseX, mouseY);
+            }
+            updateHover();
+            GamePanel.drawGame(panel, currRoom, (int) player.position, GamePanel.currDialouge, mouseX, mouseY);
         });
 
-            timer.start();
+        timer.start();
 
+    }
+    public static void handleClick(int x, int y){
+        mouseX = x;
+        mouseY = y;
+        if(storyScene != null){
+            if(contains(x, y, 457, 378, 165, 36)){
+                if(++storyFrame >= storyScene.frames.length) storyScene = null;
+            }
+            return;
+        }
+        if(start){
+            if(contains(x, y, 260, 260, 100, 50)){
+                start = false;
+                if(!introducedCase){
+                    introducedCase = true;
+                    beginStory(StoryScene.OPENING);
+                }
+            }
+            return;
+        }
+        if(GamePanel.displayingDialouge){
+            GamePanel.drawDialouge(panel, GamePanel.currDialouge);
+            return;
+        }
+        if(PuzzleManager.isOpen()){
+            handlePuzzleClick(x, y);
+            return;
+        }
+        if(!reviewingCase && GamePanel.HAND_SLOT.contains(x, y)){
+            PlayerInventory.heldItem = null;
+            return;
+        }
+        if(PlayerInventory.showing){
+            if(reviewingCase){
+                if(contains(x, y, 80, 365, 150, 35)) reviewingCase = false;
+                else if(contains(x, y, 450, 365, 150, 35)) restartCase();
+                else {
+                    Suspect[] suspects = {RoomManager.alex, RoomManager.maya, RoomManager.morgan};
+                    for(int i = 0; i < suspects.length; i++){
+                        if(contains(x, y, 80 + i * 175, 300, 160, 40)){
+                            boolean alreadySolved = Investigation.caseSolved;
+                            DialougeManager result = Investigation.accuse(suspects[i]);
+                            if(!alreadySolved && Investigation.caseSolved) beginStory(StoryScene.ENDING);
+                            else openDialouge(result);
+                            return;
+                        }
+                    }
+                }
+                return;
+            }
+            if(contains(x, y, 450, 15, 160, 40)){
+                reviewingCase = true;
+                return;
+            }
+            GamePanel.updateInventoryLayout();
+            for(Item item : PlayerInventory.items){
+                Coordinate c = GamePanel.iItems.get(item);
+                if(contains(x, y, c.x, c.y, 50, 50)){
+                    PlayerInventory.heldItem = PlayerInventory.heldItem == item ? null : item;
+                    return;
+                }
+            }
+            for(Clue clue : PlayerInventory.clues){
+                Coordinate c = GamePanel.cItems.get(clue);
+                if(contains(x, y, c.x, c.y, 50, 50)){
+                    openDialouge(clue.content);
+                    return;
+                }
+            }
+            return;
+        }
+        if(contains(x, y, 10, 10, 50, 50)){
+            start = true;
+            return;
+        }
+        for(PuzzleContainer container : currRoom.containers){
+            if(container.contains(x, y)){
+                if(container.collected) showDoorMessage("The " + container.name + " is empty.");
+                else PuzzleManager.activeContainer = container;
+                return;
+            }
+        }
+        for(Suspect suspect : currRoom.suspects){
+            if(suspect.location == currRoom && suspect.contains(x, y)){
+                openDialouge(Investigation.question(suspect));
+                return;
+            }
+        }
+        // Remove by index and stop after one pickup, so lists aren't changed
+        // while a for-each iterator is still using them.
+        for(int index = 0; index < currRoom.items.size(); index++){
+            Item item = currRoom.items.get(index);
+            if(item.active && !item.locked && contains(x, y, item.location.x, item.location.y, Item.BOUNDINGBOX, Item.BOUNDINGBOX)){
+                currRoom.items.remove(index);
+                PlayerInventory.items.add(item);
+                openDialouge(item.content);
+                return;
+            }
+        }
+        for(int index = 0; index < currRoom.clues.size(); index++){
+            Clue clue = currRoom.clues.get(index);
+            if(clue.active && contains(x, y, clue.location.x, clue.location.y, Clue.BOUNDINGBOX, Clue.BOUNDINGBOX)){
+                if(!Investigation.examine(clue)){
+                    showDoorMessage(PlayerInventory.items.contains(clue.requiredTool)
+                        ? "Select the " + clue.requiredTool.name + " in your inventory first."
+                        : clue.lockedHint);
+                    return;
+                }
+                currRoom.clues.remove(index);
+                PlayerInventory.clues.add(clue);
+                openDialouge(clue.content);
+                return;
+            }
         }
     }
+
+
+    private static void handlePuzzleClick(int x, int y){
+        PuzzleContainer container = PuzzleManager.activeContainer;
+        PuzzleManager puzzle = container.puzzle;
+        if(contains(x, y, 549, 35, 75, 30)){ PuzzleManager.close(); return; }
+        if(puzzle.solved){
+            if(contains(x, y, 230, 330, 220, 42)){
+                DialougeManager reward = container.collect();
+                PuzzleManager.close();
+                openDialouge(reward);
+            }
+            return;
+        }
+        if(contains(x, y, 70, 350, 100, 30)){ puzzle.showingHint = !puzzle.showingHint; return; }
+        if(contains(x, y, 509, 350, 100, 30)){ puzzle.reset(); return; }
+        if(puzzle.type == PuzzleManager.Type.CODE){
+            for(int i = 0; i < 10; i++){
+                if(contains(x, y, 115 + (i % 5) * 90, 200 + (i / 5) * 48, 75, 38)){
+                    puzzle.digit((char) ('0' + i));
+                    return;
+                }
+            }
+            if(contains(x, y, 205, 300, 120, 35)) puzzle.backspace();
+            else if(contains(x, y, 350, 300, 120, 35)) puzzle.submit();
+        }
+        else if(puzzle.type == PuzzleManager.Type.ORDER){
+            for(int i = 0; i < puzzle.choices.length; i++){
+                if(contains(x, y, 95 + i * 170, 220, 150, 55)) puzzle.choose(i);
+            }
+        }
+        else {
+            for(int i = 0; i < 9; i++){
+                if(contains(x, y, 245 + (i % 3) * 65, 140 + (i / 3) * 65, 55, 55)) puzzle.toggle(i);
+            }
+        }
+    }
+
+    private static void restartCase(){
+        Investigation.reset();
+        rooms = RoomManager.rooms;
+        currRoom = rooms[0];
+        player.position = 0;
+        roomCooldown = 0;
+        reviewingCase = false;
+        GamePanel.displayingDialouge = false;
+        GamePanel.currDialouge = null;
+        currDialouge = null;
+        beginStory(StoryScene.OPENING);
+    }
+
+    private static void beginStory(StoryScene scene){
+        storyScene = scene;
+        storyFrame = 0;
+    }
+
+    private static Room nearbyExit(){
+        if(player.position < 50) return currRoom.left;
+        if(player.position > 450) return currRoom.right;
+        return null;
+    }
+
+    private static void tryExit(){
+        Room destination = nearbyExit();
+        if(destination == null || roomCooldown > 0) return;
+        boolean wasLocked = destination.locked;
+        if(!destination.tryUnlock(PlayerInventory.items)){
+            showDoorMessage("The " + destination.name + " is locked. Hold its matching key from your inventory.");
+            return;
+        }
+        boolean goingLeft = player.position < 50;
+        currRoom = destination;
+        player.position = goingLeft ? 500 : 10;
+        roomCooldown = 128;
+        GamePanel.nearExit = false;
+        if(wasLocked) showDoorMessage("The key fits. The door is now unlocked.");
+    }
+
+    private static void showDoorMessage(String text){
+        openDialouge(new DialougeManager(player.image, "Detective",
+            new java.util.ArrayList<>(java.util.Arrays.asList(text)), ""));
+    }
+
+    private static boolean contains(int x, int y, int left, int top, int width, int height){
+        return x >= left && x < left + width && y >= top && y < top + height;
+    }
+
+    private static void openDialouge(DialougeManager dialogue){
+        if(dialogue == null) return;
+        dialogue.reset();
+        currDialouge = dialogue;
+        GamePanel.drawDialouge(panel, dialogue);
+    }
+
+    private static void updateHover(){
+        GamePanel.isHovering = false;
+        GamePanel.hoveredItem = null;
+        if(start || storyScene != null || GamePanel.displayingDialouge || PuzzleManager.isOpen()) return;
+        if(PlayerInventory.showing){
+            GamePanel.updateInventoryLayout();
+            GamePanel.iItems.forEach((item, c) -> {
+                if(contains(mouseX, mouseY, c.x, c.y, 50, 50)) GamePanel.hoveredItem = item.content;
+            });
+            GamePanel.cItems.forEach((clue, c) -> {
+                if(contains(mouseX, mouseY, c.x, c.y, 50, 50)) GamePanel.hoveredItem = clue.content;
+            });
+            return;
+        }
+        if(currRoom == RoomManager.library && contains(mouseX, mouseY, 112, 151, 105, 51)){
+            GamePanel.isHovering = true;
+        }
+        for(PuzzleContainer container : currRoom.containers){
+            if(container.contains(mouseX, mouseY)) GamePanel.isHovering = true;
+        }
+        for(Suspect suspect : currRoom.suspects){
+            if(suspect.location == currRoom && suspect.contains(mouseX, mouseY)) GamePanel.isHovering = true;
+        }
+        for(Item item : currRoom.items){
+            if(item.active && !item.locked && contains(mouseX, mouseY, item.location.x, item.location.y, Item.BOUNDINGBOX, Item.BOUNDINGBOX)) GamePanel.isHovering = true;
+        }
+        for(Clue clue : currRoom.clues){
+            if(clue.active && contains(mouseX, mouseY, clue.location.x, clue.location.y, Clue.BOUNDINGBOX, Clue.BOUNDINGBOX)) GamePanel.isHovering = true;
+        }
+    }
+}

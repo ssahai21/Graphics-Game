@@ -11,14 +11,23 @@ public class DialougeManager {
     public String currLine;
 
     private Image tempscaling;
+    private int lineIndex = 0;
 
     public DialougeManager(ImageIcon speakerImage, String speakerName, ArrayList<String> contents, String inventoryBlurb){
         this.speakerName = speakerName;
         this.contents = contents;
         this.inventoryBlurb = inventoryBlurb;
         currLine = "";
-        tempscaling = speakerImage.getImage().getScaledInstance(100, 100, java.awt.Image.SCALE_SMOOTH);
-        this.speakerImage = new ImageIcon(tempscaling);
+        this.speakerImage = speakerImage;
     }
-    
+    public void reset(){
+        lineIndex = 0;
+        currLine = "";
+    }
+
+    public boolean advance(){
+        if(lineIndex >= contents.size()) return false;
+        currLine = contents.get(lineIndex++);
+        return true;
+    }
 }

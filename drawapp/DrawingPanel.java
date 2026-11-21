@@ -738,6 +738,7 @@ public final class DrawingPanel implements ImageObserver {
     private int width;                     // dimensions of window frame
     private int height;                    // dimensions of window frame
     private JFileChooser chooser;          // file chooser to save files
+    private boolean fitToWindow = false;
     private JFrame frame;                  // overall window frame
     private JLabel statusBar;              // status bar showing mouse position
     private JPanel panel;                  // overall drawing surface
@@ -948,6 +949,28 @@ public final class DrawingPanel implements ImageObserver {
      * Adds the given event listener to respond to key events on this panel.
      * @param listener the key event listener to attach
      */
+    public void setFitToWindow(boolean enabled) {
+        fitToWindow = enabled;
+        if(frame == null) return;
+        // Use the entire content area rather than a fixed-size scrolling canvas.
+        panel.removeAll();
+        panel.setLayout(new BorderLayout());
+        panel.add(imagePanel, BorderLayout.CENTER);
+        frame.getContentPane().removeAll();
+        frame.getContentPane().add(panel, BorderLayout.CENTER);
+        frame.setTitle("Liberty High | After Hours");
+        imagePanel.setBackground(Color.BLACK);
+        frame.revalidate();
+        frame.repaint();
+    }
+
+    private Point gameMousePoint(MouseEvent event) {
+        if(!fitToWindow) return event.getPoint();
+        Point point = javax.swing.SwingUtilities.convertPoint(event.getComponent(), event.getPoint(), imagePanel);
+        return GameViewport.toGame(point,
+            GameViewport.bounds(width, height, imagePanel.getWidth(), imagePanel.getHeight()), width, height);
+    }
+
     public void addKeyListener(KeyListener listener) {
         ensureNotNull("listener", listener);
         frame.addKeyListener(listener);
@@ -963,8 +986,10 @@ public final class DrawingPanel implements ImageObserver {
     public void addMouseListener(MouseListener listener) {
         ensureNotNull("listener", listener);
         panel.addMouseListener(listener);
+        imagePanel.addMouseListener(listener);
         if (listener instanceof MouseMotionListener) {
             panel.addMouseMotionListener((MouseMotionListener) listener);
+            imagePanel.addMouseMotionListener((MouseMotionListener) listener);
         }
     }
     
@@ -2539,7 +2564,8 @@ public final class DrawingPanel implements ImageObserver {
         @Override
         public void mousePressed(MouseEvent e) {
             if (eventType == "press") {
-                handler.onMouseEvent(e.getX(), e.getY());
+                Point point = gameMousePoint(e);
+                handler.onMouseEvent(point.x, point.y);
             }
         }
         
@@ -2550,7 +2576,8 @@ public final class DrawingPanel implements ImageObserver {
         @Override
         public void mouseReleased(MouseEvent e) {
             if (eventType == "release") {
-                handler.onMouseEvent(e.getX(), e.getY());
+                Point point = gameMousePoint(e);
+                handler.onMouseEvent(point.x, point.y);
             }
         }
         
@@ -2561,7 +2588,8 @@ public final class DrawingPanel implements ImageObserver {
         @Override
         public void mouseClicked(MouseEvent e) {
             if (eventType == "click") {
-                handler.onMouseEvent(e.getX(), e.getY());
+                Point point = gameMousePoint(e);
+                handler.onMouseEvent(point.x, point.y);
             }
         }
         
@@ -2572,7 +2600,8 @@ public final class DrawingPanel implements ImageObserver {
         @Override
         public void mouseEntered(MouseEvent e) {
             if (eventType == "enter") {
-                handler.onMouseEvent(e.getX(), e.getY());
+                Point point = gameMousePoint(e);
+                handler.onMouseEvent(point.x, point.y);
             }
         }
         
@@ -2583,7 +2612,8 @@ public final class DrawingPanel implements ImageObserver {
         @Override
         public void mouseExited(MouseEvent e) {
             if (eventType == "exit") {
-                handler.onMouseEvent(e.getX(), e.getY());
+                Point point = gameMousePoint(e);
+                handler.onMouseEvent(point.x, point.y);
             }
         }
         
@@ -2594,7 +2624,8 @@ public final class DrawingPanel implements ImageObserver {
         @Override
         public void mouseMoved(MouseEvent e) {
             if (eventType == "move") {
-                handler.onMouseEvent(e.getX(), e.getY());
+                Point point = gameMousePoint(e);
+                handler.onMouseEvent(point.x, point.y);
             }
         }
         
@@ -2605,7 +2636,8 @@ public final class DrawingPanel implements ImageObserver {
         @Override
         public void mouseDragged(MouseEvent e) {
             if (eventType == "drag") {
-                handler.onMouseEvent(e.getX(), e.getY());
+                Point point = gameMousePoint(e);
+                handler.onMouseEvent(point.x, point.y);
             }
         }
     }
@@ -3242,6 +3274,12 @@ public final class DrawingPanel implements ImageObserver {
         public void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g;
+            if(fitToWindow){
+                Rectangle viewport = GameViewport.bounds(width, height, getWidth(), getHeight());
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g2.drawImage(image, viewport.x, viewport.y, viewport.width, viewport.height, this);
+                return;
+            }
             if (currentZoom != 1) {
                 g2.scale(currentZoom, currentZoom);
             }
