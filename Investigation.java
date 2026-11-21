@@ -1,6 +1,3 @@
-import java.util.ArrayList;
-import java.util.Arrays;
-
 /** Story progression is independent of drawing and can be checked without a window. */
 public final class Investigation {
     public static boolean caseSolved;
@@ -21,7 +18,6 @@ public final class Investigation {
         if(suspect.questionedWithEvidence && suspect.reward != null && !suspect.rewardGiven){
             PlayerInventory.items.add(suspect.reward);
             suspect.rewardGiven = true;
-            dialogue.contents.add("Received: " + suspect.reward.name + ".");
         }
         return dialogue;
     }
@@ -43,22 +39,12 @@ public final class Investigation {
             && RoomManager.morgan.questionedWithEvidence;
     }
 
-    public static DialougeManager accuse(Suspect suspect){
-        String[] lines;
-        if(caseSolved) lines = new String[]{"The case is already closed. Morgan is in custody."};
-        else if(!readyToAccuse()) lines = new String[]{"We need every lead before making an arrest."};
-        else if(suspect != RoomManager.morgan) lines = new String[]{
-            "The evidence does not support that accusation.",
-            suspect == RoomManager.alex ? "The library register clears Alex at 5:15." : "The camera identifies Morgan, not Maya.",
-            "Review the archive and try again."};
-        else {
-            caseSolved = true;
-            lines = new String[]{"Morgan's access log places him at the scene.",
-                "The rag links him to the lab; the camera shows the attack.",
-                "He killed Mr. Woffinden to hide his equipment theft.",
-                "Morgan is in custody. Case closed."};
-        }
-        return new DialougeManager(GamePanel.loadImage("detective.png"), "Detective",
-            new ArrayList<>(Arrays.asList(lines)), "Case review");
+    public static String accuse(Suspect suspect){
+        if(caseSolved) return "Morgan's already in custody.";
+        if(!readyToAccuse()) return "I should finish checking the evidence and talk to everyone again.";
+        if(suspect == RoomManager.alex) return "Maya's sign-in sheet puts Alex in the library the whole time.";
+        if(suspect != RoomManager.morgan) return "That doesn't fit what happened on the recording.";
+        caseSolved = true;
+        return "That's enough to bring Morgan in.";
     }
 }

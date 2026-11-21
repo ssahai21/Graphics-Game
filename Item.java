@@ -7,14 +7,14 @@ public class Item{
     public boolean active;
     public Room unlocksRoom;
     public Coordinate location;
-    public DialougeManager content;
+    public String description;
 
     public static final int BOUNDINGBOX = 100;
 
-    public Item(Coordinate location, ImageIcon image, DialougeManager content){
+    public Item(Coordinate location, ImageIcon image, String description){
         this.location = location;
         this.image = image;
-        this.content = content;
+        this.description = description;
         active = true;
     }
 

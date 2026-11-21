@@ -24,6 +24,8 @@ public class GameManager {
 
 
     public static DialougeManager currDialouge;
+    public static String notice = "";
+    public static long noticeUntil;
     public static void main(String[] args){
         panel.setFitToWindow(true);
 
@@ -110,14 +112,26 @@ public class GameManager {
         mouseY = y;
         if(storyScene != null){
             if(contains(x, y, 457, 378, 165, 36)){
-                if(++storyFrame >= storyScene.frames.length) storyScene = null;
+                if(++storyFrame >= storyScene.frames.length){
+                    if(storyScene == StoryScene.ENDING){
+                        start = true;
+                        reviewingCase = false;
+                        PlayerInventory.showing = false;
+                        notice = "";
+                        noticeUntil = 0;
+                    }
+                    storyScene = null;
+                }
             }
             return;
         }
         if(start){
-            if(contains(x, y, 260, 260, 100, 50)){
+            if(contains(x, y, 290, 260, 100, 50)){
                 start = false;
-                if(!introducedCase){
+                if(Investigation.caseSolved){
+                    restartCase();
+                }
+                else if(!introducedCase){
                     introducedCase = true;
                     beginStory(StoryScene.OPENING);
                 }
@@ -145,9 +159,9 @@ public class GameManager {
                     for(int i = 0; i < suspects.length; i++){
                         if(contains(x, y, 80 + i * 175, 300, 160, 40)){
                             boolean alreadySolved = Investigation.caseSolved;
-                            DialougeManager result = Investigation.accuse(suspects[i]);
+                            String result = Investigation.accuse(suspects[i]);
                             if(!alreadySolved && Investigation.caseSolved) beginStory(StoryScene.ENDING);
-                            else openDialouge(result);
+                            else showNotice(result);
                             return;
                         }
                     }
@@ -181,7 +195,7 @@ public class GameManager {
         }
         for(PuzzleContainer container : currRoom.containers){
             if(container.contains(x, y)){
-                if(container.collected) showDoorMessage("The " + container.name + " is empty.");
+                if(container.collected) showNotice("Nothing left in there.");
                 else PuzzleManager.activeContainer = container;
                 return;
             }
@@ -199,7 +213,7 @@ public class GameManager {
             if(item.active && !item.locked && contains(x, y, item.location.x, item.location.y, Item.BOUNDINGBOX, Item.BOUNDINGBOX)){
                 currRoom.items.remove(index);
                 PlayerInventory.items.add(item);
-                openDialouge(item.content);
+                showNotice("Picked up " + item.name.toLowerCase() + ".");
                 return;
             }
         }
@@ -207,8 +221,8 @@ public class GameManager {
             Clue clue = currRoom.clues.get(index);
             if(clue.active && contains(x, y, clue.location.x, clue.location.y, Clue.BOUNDINGBOX, Clue.BOUNDINGBOX)){
                 if(!Investigation.examine(clue)){
-                    showDoorMessage(PlayerInventory.items.contains(clue.requiredTool)
-                        ? "Select the " + clue.requiredTool.name + " in your inventory first."
+                    showNotice(PlayerInventory.items.contains(clue.requiredTool)
+                        ? "I need to hold the " + clue.requiredTool.name.toLowerCase() + " first."
                         : clue.lockedHint);
                     return;
                 }
@@ -227,9 +241,13 @@ public class GameManager {
         if(contains(x, y, 549, 35, 75, 30)){ PuzzleManager.close(); return; }
         if(puzzle.solved){
             if(contains(x, y, 230, 330, 220, 42)){
-                DialougeManager reward = container.collect();
+                if(container.collect()){
+                    java.util.ArrayList<String> names = new java.util.ArrayList<>();
+                    for(Item item : container.items) names.add(item.name);
+                    for(Clue clue : container.clues) names.add(clue.name);
+                    showNotice("Added to inventory - " + String.join(", ", names) + ".");
+                }
                 PuzzleManager.close();
-                openDialouge(reward);
             }
             return;
         }
@@ -259,6 +277,8 @@ public class GameManager {
 
     private static void restartCase(){
         Investigation.reset();
+        notice = "";
+        noticeUntil = 0;
         rooms = RoomManager.rooms;
         currRoom = rooms[0];
         player.position = 0;
@@ -286,7 +306,7 @@ public class GameManager {
         if(destination == null || roomCooldown > 0) return;
         boolean wasLocked = destination.locked;
         if(!destination.tryUnlock(PlayerInventory.items)){
-            showDoorMessage("The " + destination.name + " is locked. Hold its matching key from your inventory.");
+            showNotice("Locked. I need the " + destination.name.toLowerCase() + " key in my hand.");
             return;
         }
         boolean goingLeft = player.position < 50;
@@ -294,12 +314,12 @@ public class GameManager {
         player.position = goingLeft ? 500 : 10;
         roomCooldown = 128;
         GamePanel.nearExit = false;
-        if(wasLocked) showDoorMessage("The key fits. The door is now unlocked.");
+        if(wasLocked) showNotice("Unlocked.");
     }
 
-    private static void showDoorMessage(String text){
-        openDialouge(new DialougeManager(player.image, "Detective",
-            new java.util.ArrayList<>(java.util.Arrays.asList(text)), ""));
+    private static void showNotice(String text){
+        notice = text;
+        noticeUntil = System.currentTimeMillis() + 4500;
     }
 
     private static boolean contains(int x, int y, int left, int top, int width, int height){
@@ -320,10 +340,10 @@ public class GameManager {
         if(PlayerInventory.showing){
             GamePanel.updateInventoryLayout();
             GamePanel.iItems.forEach((item, c) -> {
-                if(contains(mouseX, mouseY, c.x, c.y, 50, 50)) GamePanel.hoveredItem = item.content;
+                if(contains(mouseX, mouseY, c.x, c.y, 50, 50)) GamePanel.hoveredItem = item.name + " - " + item.description;
             });
             GamePanel.cItems.forEach((clue, c) -> {
-                if(contains(mouseX, mouseY, c.x, c.y, 50, 50)) GamePanel.hoveredItem = clue.content;
+                if(contains(mouseX, mouseY, c.x, c.y, 50, 50)) GamePanel.hoveredItem = clue.name;
             });
             return;
         }

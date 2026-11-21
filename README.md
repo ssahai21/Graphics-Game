@@ -11,7 +11,7 @@ java -cp out GameManager
 
 Use A and D to walk, E near either edge to enter the adjacent room, I to open evidence, and the mouse to collect objects or question suspects. Click to advance dialogue. Click a key or tool in inventory to hold it before using it on a door or object. Click the same item again, or the bottom-right hand square, to put it away. The held item stays selected after use. The objective at the bottom gives the next lead; [L] on the map means a locked room.
 
-In inventory, click an object to reread it or choose Review Case to check evidence and make an accusation. An incomplete investigation blocks an arrest; a mistaken accusation lets you review and retry. New Case resets the investigation. Menu returns to the title without resetting progress. Progress is kept only while the game is running.
+In inventory, click a clue to reread it or choose Review Case to check evidence and make an accusation. An incomplete investigation blocks an arrest; a mistaken accusation lets you review and retry. New Case resets the investigation. Menu returns to the title without resetting progress. Progress is kept only while the game is running.
 
 The route runs from Main Hall through Classroom, Library, Science Lab, Records Office, and Security Room. Follow-up conversations can provide keys, so returning to a suspect with new evidence matters. Text scenes on a black background introduce the case and show its resolution after a successful accusation. Use Continue to advance or Skip Scene to jump ahead.
 

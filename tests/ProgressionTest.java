@@ -66,8 +66,9 @@ public class ProgressionTest {
         check(Investigation.caseSolved, "correct accusation closes case");
         check(GameManager.storyScene == StoryScene.ENDING, "correct accusation opens the ending");
         for(int i = 0; i < StoryScene.ENDING.frames.length; i++) GameManager.handleClick(530, 395);
-        check(GameManager.storyScene == null && GameManager.reviewingCase, "ending returns to case file");
-        GameManager.handleClick(500, 380); // New case.
+        check(GameManager.storyScene == null && GameManager.start, "ending returns home");
+        check(!GameManager.reviewingCase && !PlayerInventory.showing, "ending closes the case review");
+        GameManager.handleClick(380, 285); // Start another case from the home button's right edge.
         check(GameManager.storyScene == StoryScene.OPENING, "restart replays introduction");
         for(int i = 0; i < StoryScene.OPENING.frames.length; i++) GameManager.handleClick(530, 395);
         check(GameManager.storyScene == null, "restarted intro completes");
@@ -100,6 +101,7 @@ public class ProgressionTest {
         exit.setAccessible(true);
         exit.invoke(null);
         check(GameManager.currRoom == expected, "expected room: " + expected.name);
+        check(!GamePanel.displayingDialouge, "door feedback does not open dialogue");
         finishDialogue();
     }
     private static void equip(Item item){
@@ -123,6 +125,7 @@ public class ProgressionTest {
         if(box != null) solve(box);
         else GameManager.handleClick(item.location.x + 50, item.location.y + 50);
         check(PlayerInventory.items.contains(item), "picked up " + item.name);
+        check(!GamePanel.displayingDialouge, "item pickup does not open dialogue");
         finishDialogue();
     }
     private static void collect(Clue clue){
@@ -135,7 +138,7 @@ public class ProgressionTest {
         finishDialogue();
     }
     private static void solve(PuzzleContainer box){
-        check(box.collect() == null, "locked contents inaccessible");
+        check(!box.collect(), "locked contents inaccessible");
         GameManager.handleClick(box.location.x + 50, box.location.y + 50);
         check(PuzzleManager.activeContainer == box, "container opens puzzle");
         if(box.puzzle.type == PuzzleManager.Type.CODE){
@@ -145,17 +148,29 @@ public class ProgressionTest {
         else if(box.puzzle.type == PuzzleManager.Type.ORDER){
             for(int index : new int[]{1, 2, 0}) GameManager.handleClick(120 + index * 170, 240);
         }
-        else for(int index : new int[]{0, 4, 8}) GameManager.handleClick(265 + (index % 3) * 65, 160 + (index / 3) * 65);
+        else {
+            int solution = PuzzleTest.lightSolution(box.puzzle);
+            check(solution >= 0, "random lights puzzle is solvable");
+            for(int index = 0; index < 9; index++){
+                if((solution & (1 << index)) != 0)
+                    GameManager.handleClick(265 + (index % 3) * 65, 160 + (index / 3) * 65);
+            }
+        }
         check(box.puzzle.solved, "puzzle solved through mouse controls");
         GameManager.handleClick(300, 350);
         check(box.collected && !PuzzleManager.isOpen(), "contents claimed");
+        check(!GamePanel.displayingDialouge, "container rewards do not open dialogue");
         int count = PlayerInventory.items.size() + PlayerInventory.clues.size();
-        check(box.collect() == null && count == PlayerInventory.items.size() + PlayerInventory.clues.size(), "contents claimed only once");
+        check(!box.collect() && count == PlayerInventory.items.size() + PlayerInventory.clues.size(), "contents claimed only once");
     }
     private static void question(Suspect suspect){
         GameManager.handleClick(suspect.position.x + 30, suspect.position.y + 30);
         check(suspect.questioned, "questioned " + suspect.name);
+        DialougeManager conversation = GamePanel.currDialouge;
+        int lineCount = conversation.contents.size();
         finishDialogue();
+        check(suspect.question(PlayerInventory.clues) == conversation, "suspect reuses conversation");
+        check(conversation.contents.size() == lineCount, "repeated conversation keeps the same lines");
     }
     private static void finishDialogue(){
         int limit = 20;

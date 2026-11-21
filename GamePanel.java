@@ -19,7 +19,7 @@ public class GamePanel {
 
     public static boolean nearExit = false;
 
-    public static DialougeManager hoveredItem = null;
+    public static String hoveredItem = null;
 
     public static Map<Item, Coordinate> iItems = new HashMap<>();
     public static Map<Clue, Coordinate> cItems = new HashMap<>();
@@ -89,7 +89,19 @@ public class GamePanel {
         if(!GameManager.start && !GameManager.reviewingCase && !displayingDialouge && !PuzzleManager.isOpen()){
             drawHeldItem(g);
         }
+        if(!GameManager.start && !displayingDialouge && !PuzzleManager.isOpen()
+                && System.currentTimeMillis() < GameManager.noticeUntil){
+            drawNotice(g);
+        }
         if(PuzzleManager.isOpen()) drawPuzzle(g);
+    }
+
+    private static void drawNotice(Graphics g){
+        g.setColor(PANEL);
+        g.fillRoundRect(15, 404, 550, 44, 8, 8);
+        g.setColor(TEXT);
+        g.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        drawWrappedText(g, GameManager.notice, 25, 422, 530);
     }
 
     private static void drawContainers(Graphics g, Room room){
@@ -233,16 +245,27 @@ public class GamePanel {
     }
 
     private static void drawWrappedText(Graphics g, String text, int x, int y, int width){
-        String line = "";
-        for(String word : text.split(" ")){
-            if(g.getFontMetrics().stringWidth(line + word) > width){
-                g.drawString(line, x, y);
-                y += 17;
-                line = "";
-            }
-            line += word + " ";
+        for(String line : wrapText(g, text, width)){
+            g.drawString(line, x, y);
+            y += 17;
         }
-        g.drawString(line, x, y);
+    }
+
+    private static java.util.List<String> wrapText(Graphics g, String text, int width){
+        java.util.ArrayList<String> lines = new java.util.ArrayList<>();
+        for(String paragraph : text.split("\n", -1)){
+            String line = "";
+            for(String word : paragraph.split(" ")){
+                String candidate = line.isEmpty() ? word : line + " " + word;
+                if(!line.isEmpty() && g.getFontMetrics().stringWidth(candidate) > width){
+                    lines.add(line);
+                    line = word;
+                }
+                else line = candidate;
+            }
+            lines.add(line);
+        }
+        return lines;
     }
 
     private static void drawItem(Graphics g, Room room){
@@ -433,7 +456,7 @@ public class GamePanel {
 
     private static void drawInventoryHover(Graphics g, int x, int y){
         g.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        String text = hoveredItem.inventoryBlurb;
+        String text = hoveredItem;
         int width = g.getFontMetrics().stringWidth(text) + 16;
         int left = Math.max(5, Math.min(x, 674 - width));
         int top = Math.max(5, Math.min(y, 390));
@@ -454,9 +477,21 @@ public class GamePanel {
         g.setColor(TEXT);
 
         g.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        drawWrappedText(g, frame.narration(), 55, 333, 560);
+        java.util.List<String> lines = wrapText(g, frame.narration(), 560);
+        FontMetrics metrics = g.getFontMetrics();
+        int lineHeight = metrics.getHeight();
+        int y = 265 + (105 - lines.size() * lineHeight) / 2 + metrics.getAscent();
+        for(String line : lines){
+            int x = 20 + (625 - metrics.stringWidth(line)) / 2;
+            g.drawString(line, x, y);
+            y += lineHeight;
+        }
 
-        button(g, 457, 378, 165, 36, "CONTINUE");
+        String next = "CONTINUE";
+        if(index == scene.frames.length - 1){
+            next = scene == StoryScene.ENDING ? "HOME" : "START";
+        }
+        button(g, 457, 378, 165, 36, next);
     }
 
     private static void drawTitleScreen(Graphics g){
@@ -511,29 +546,37 @@ public class GamePanel {
         g.fillRoundRect(50, 20, 580, 390, 16, 16);
         g.setColor(TEXT);
         g.setFont(new Font("SansSerif", Font.BOLD, 26));
-        g.drawString(Investigation.caseSolved ? "CASE CLOSED" : "REVIEW THE CASE", 80, 58);
-        g.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        g.drawString(Investigation.caseSolved ? "Case closed" : "Case review", 80, 58);
+
         Clue[] clues = {RoomManager.meetingNote, RoomManager.libraryLedger, RoomManager.solventReport,
             RoomManager.accessLog, RoomManager.cameraFootage};
-        String[] facts = {"Alex requested a meeting.", "Alex's alibi is recorded.", "A maintenance rag was hidden.",
-            "Morgan's account conflicts with the log.", "The camera identifies the attacker."};
-        for(int i = 0; i < clues.length; i++){
-            boolean found = Investigation.has(clues[i]);
-            g.drawString((found ? "[FOUND] " : "[MISSING] ") + clues[i].name + (found ? " - " + facts[i] : ""), 80, 90 + i * 24);
+        int found = 0;
+        for(Clue clue : clues){
+            if(Investigation.has(clue)) found++;
         }
         Suspect[] suspects = {RoomManager.alex, RoomManager.maya, RoomManager.morgan};
+        g.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        g.drawString("Evidence collected  " + found + " / " + clues.length, 80, 92);
+        g.setFont(new Font("SansSerif", Font.BOLD, 17));
+        g.drawString(Investigation.caseSolved ? "Morgan is in custody." : "Who killed Mr. Woffinden?", 80, 124);
+
         for(int i = 0; i < suspects.length; i++){
+            int x = 80 + i * 175;
+            g.setColor(new Color(61, 77, 99));
+            g.fillRoundRect(x, 140, 160, 150, 10, 10);
+            drawImage(g, suspects[i].image, x + 40, 147, 80, 115);
             g.setColor(TEXT);
             g.setFont(new Font("SansSerif", Font.PLAIN, 11));
-            g.drawString(suspects[i].name + ": " + (suspects[i].questionedWithEvidence ? "follow-up complete" : "follow-up needed"), 80 + i * 175, 230);
-            button(g, 80 + i * 175, 300, 160, 40, "ACCUSE " + suspects[i].name.toUpperCase());
+            String status = suspects[i].questionedWithEvidence ? "Questioning complete" : "Follow-up needed";
+            g.drawString(status, x + (160 - g.getFontMetrics().stringWidth(status)) / 2, 280);
+            button(g, x, 300, 160, 40, "Accuse " + suspects[i].name);
         }
         g.setColor(TEXT);
         g.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        g.drawString(Investigation.caseSolved ? "Morgan is in custody. The evidence is preserved." :
-            Investigation.readyToAccuse() ? "All leads collected. Choose the suspect supported by the evidence." :
-            "Collect all five clues and finish each suspect's follow-up first.", 80, 270);
-        button(g, 80, 365, 150, 35, "BACK TO EVIDENCE");
-        button(g, 450, 365, 150, 35, "NEW CASE");
+        if(!Investigation.caseSolved && !Investigation.readyToAccuse()){
+            g.drawString("Find the remaining evidence and finish questioning.", 80, 356);
+        }
+        button(g, 80, 365, 150, 35, "Back");
+        button(g, 450, 365, 150, 35, "New case");
     }
 }

@@ -12,8 +12,8 @@ public class Suspect {
     public boolean moving;
     public boolean questioned;
     public boolean questionedWithEvidence;
-    public ArrayList<String> dialouge;
-    public ArrayList<String> evidenceDialouge;
+    private final DialougeManager conversation;
+    private final DialougeManager evidenceConversation;
     public Clue relevantClue;
     public Item reward;
     public boolean rewardGiven;
@@ -24,9 +24,9 @@ public class Suspect {
         this.image = image;
         this.location = location;
         this.position = position;
-        this.dialouge = new ArrayList<>(dialouge);
+        this.conversation = new DialougeManager(image, name, new ArrayList<>(dialouge), "");
         this.relevantClue = relevantClue;
-        this.evidenceDialouge = new ArrayList<>(evidenceDialouge);
+        this.evidenceConversation = new DialougeManager(image, name, new ArrayList<>(evidenceDialouge), "");
     }
 
     public boolean contains(int x, int y){
@@ -38,7 +38,8 @@ public class Suspect {
         boolean hasEvidence = relevantClue != null && evidence.contains(relevantClue);
         questioned = true;
         if(hasEvidence) questionedWithEvidence = true;
-        return new DialougeManager(image, name,
-            new ArrayList<>(hasEvidence ? evidenceDialouge : dialouge), "");
+        DialougeManager dialogue = hasEvidence ? evidenceConversation : conversation;
+        dialogue.reset();
+        return dialogue;
     }
 }

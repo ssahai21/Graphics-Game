@@ -45,14 +45,52 @@ public class PuzzleTest {
         for(int i=0;i<9;i++) check(original[i]==lights.lightAt(i), "double toggle restores board");
         lights.toggle(1); lights.reset();
         for(int i=0;i<9;i++) check(original[i]==lights.lightAt(i), "reset restores board");
-        for(int index : new int[]{0,4,8}) lights.toggle(index);
+        int solution = lightSolution(lights);
+        check(Integer.bitCount(solution) >= 5, "starting board needs at least five presses");
+        for(int index = 0; index < 9; index++){
+            if((solution & (1 << index)) != 0) lights.toggle(index);
+        }
         check(lights.solved, "light board is solvable");
         for(int i=0;i<9;i++) check(lights.lightAt(i), "solved lamps all on");
+        java.util.Set<Integer> boards = new java.util.HashSet<>();
+        for(int sample = 0; sample < 32; sample++){
+            PuzzleManager board = PuzzleManager.lights("Test safe");
+            int shortest = lightSolution(board);
+            check(shortest >= 0 && Integer.bitCount(shortest) >= 5
+                && Integer.bitCount(shortest) <= 7, "random board is solvable in five to seven presses");
+            int state = 0;
+            for(int index = 0; index < 9; index++){
+                if(board.lightAt(index)) state |= 1 << index;
+            }
+            boards.add(state);
+        }
+        check(boards.size() > 1, "new puzzles have varied starting boards");
         Investigation.reset();
         check(!PuzzleManager.isOpen() && !RoomManager.classroomBox.puzzle.solved, "new case clears active puzzle");
         System.out.println("Passed " + checks + " puzzle checks.");
         System.exit(0);
     }
+    // Exhaustively checks the displayed board, independent of its scramble.
+    public static int lightSolution(PuzzleManager puzzle){
+        int best = -1;
+        for(int presses = 0; presses < 512; presses++){
+            boolean solved = true;
+            for(int cell = 0; cell < 9; cell++){
+                boolean on = puzzle.lightAt(cell);
+                for(int press = 0; press < 9; press++){
+                    int distance = Math.abs(cell / 3 - press / 3) + Math.abs(cell % 3 - press % 3);
+                    if((presses & (1 << press)) != 0 && distance <= 1) on = !on;
+                }
+                if(!on){
+                    solved = false;
+                    break;
+                }
+            }
+            if(solved && (best < 0 || Integer.bitCount(presses) < Integer.bitCount(best))) best = presses;
+        }
+        return best;
+    }
+
     private static void check(boolean condition, String message){
         if(!condition) throw new AssertionError(message);
         checks++;

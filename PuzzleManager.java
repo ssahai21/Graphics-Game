@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
 /** Puzzle state and rules. Screen drawing and input stay in GamePanel/GameManager. */
 public class PuzzleManager {
@@ -18,6 +19,7 @@ public class PuzzleManager {
     private String entry = "";
     private String orderEntry = "";
     private final boolean[] lights = new boolean[9];
+    private final boolean[] initialLights = new boolean[9];
 
     private PuzzleManager(Type type, String title, String instructions, String answer, String[] choices){
         this.type = type;
@@ -36,7 +38,7 @@ public class PuzzleManager {
     public static PuzzleManager lights(String title){
         PuzzleManager puzzle = new PuzzleManager(Type.LIGHTS, title,
             "Light all nine lamps. A switch flips itself and its neighbors.", "", new String[0]);
-        puzzle.resetLights();
+        puzzle.scrambleLights();
         return puzzle;
     }
     public String entry(){ return entry; }
@@ -54,7 +56,7 @@ public class PuzzleManager {
     public void submit(){
         if(solved || type != Type.CODE) return;
         if(entry.equals(answer)) finish();
-        else { message = "The lock stays shut. Look around the room and try again."; entry = ""; }
+        else { message = "That code didn't work."; entry = ""; }
     }
     public void choose(int index){
         if(solved || type != Type.ORDER || index < 0 || index >= choices.length) return;
@@ -66,7 +68,7 @@ public class PuzzleManager {
             else {
                 entry = "";
                 orderEntry = "";
-                message = "Wrong order. The tabs spring back. Try again.";
+                message = "That order didn't work.";
             }
         }
     }
@@ -92,9 +94,22 @@ public class PuzzleManager {
         if(type == Type.LIGHTS) resetLights();
     }
     private void resetLights(){
-        Arrays.fill(lights, true);
-        // Scramble from a solved board so every new case is solvable.
-        flip(0); flip(4); flip(8);
+        System.arraycopy(initialLights, 0, lights, 0, lights.length);
     }
-    private void finish(){ solved = true; message = "The lock clicks open."; }
+
+    private void scrambleLights(){
+        int presses;
+        do {
+            presses = ThreadLocalRandom.current().nextInt(1, 1 << lights.length);
+        } while(Integer.bitCount(presses) < 5 || Integer.bitCount(presses) > 7);
+
+        // On this 3x3 board every press pattern has a unique result.
+        // Scrambling with 5-7 distinct switches gives a solvable, longer puzzle.
+        Arrays.fill(lights, true);
+        for(int index = 0; index < lights.length; index++){
+            if((presses & (1 << index)) != 0) flip(index);
+        }
+        System.arraycopy(lights, 0, initialLights, 0, lights.length);
+    }
+    private void finish(){ solved = true; message = "It's open."; }
 }

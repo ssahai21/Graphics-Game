@@ -26,47 +26,35 @@ public class RoomManager {
             if(i < rooms.length - 1) rooms[i].right = rooms[i + 1];
         }
 
-        classroomKey = key("Classroom key", room2, 120, 245,
-            "The classroom key was left at reception.", "Mr. Woffinden was found dead there after school.");
+        classroomKey = key("Classroom key", room2, 120, 245, "Room 204. The tag is nearly worn off.");
         room1.items.add(classroomKey);
-        libraryKey = key("Library key", library, 0, 0,
-            "Alex's library key. His alibi should be recorded there.");
-        labKey = key("Lab key", laboratory, 100, 245,
-            "A science lab key, left at the library desk.");
-        recordsKey = key("Records key", records, 0, 0,
-            "Maya's spare records key. Check the staff access log.");
-        securityKey = key("Security key", security, 100, 245,
-            "The security key was filed beside the access log.", "The camera archive can settle the timeline.");
-        screwdriver = item("Screwdriver", "screwdriver.png", 250, 245,
-            "A flat-head screwdriver from the library repair kit.", "It could open the lab's loose ventilation panel.");
-        library.items.add(labKey);
-        library.items.add(screwdriver);
-        records.items.add(securityKey);
+        libraryKey = key("Library key", library, 0, 0, "Alex's copy of the library key.");
+        labKey = key("Lab key", laboratory, 100, 245, "Science lab. Kept with the repair tools.");
+        recordsKey = key("Records key", records, 0, 0, "The library's spare key to the records office.");
+        securityKey = key("Security key", security, 100, 245, "Security room. Kept in the office safe.");
+        screwdriver = item("Screwdriver", "screwdriver.png", 250, 245, "Flat head. Small enough for the vent screws.");
 
-        meetingNote = clue("Meeting note", room2, 150, 250,
-            "Alex asked Mr. Woffinden to meet at 5:10.",
-            "The note is signed by Alex. Ask him about it.");
-        libraryLedger = clue("Library register", library, 400, 245,
-            "Alex signed into supervised study from 5:00 to 5:30.",
-            "The attack was at 5:15. Alex was in the library.");
-        solventReport = clue("Maintenance rag", laboratory, 160, 245,
-            "Inside the vent: a rag with brass polish and blood.",
-            "Its tag says Maintenance. Check the staff access log.");
+        meetingNote = clue("Alex's note", room2, 150, 250,
+            "Mr. Woffinden - could you sign my trip form? I'll be in the library at 5:10. - Alex");
+        libraryLedger = clue("Library sign-in sheet", library, 400, 245,
+            "Alex Chen. In at 5:00, out at 5:30. Maya's initials are beside both times.",
+            "There's a note underneath: Stayed to finish his trip form.");
+        solventReport = clue("Bloodstained rag", laboratory, 160, 245,
+            "A cleaning rag, pushed behind the vent cover. There's blood on one side.",
+            "Someone has written MORGAN on the cloth tag.");
         solventReport.image = GamePanel.loadImage("maintenance-rag.png");
         solventReport.content.speakerImage = solventReport.image;
         solventReport.requiredTool = screwdriver;
         solventReport.locked = true;
-        solventReport.lockedHint = "The vent is screwed shut. Find a screwdriver.";
-        accessLog = clue("Staff access log", records, 250, 245,
-            "Morgan entered the classroom at 5:12, leaving at 5:18.",
-            "His equipment audit was scheduled for tomorrow.",
-            "Question Morgan, then check the security archive.");
-        cameraFootage = clue("Camera archive", security, 250, 245,
-            "5:15: Morgan strikes Mr. Woffinden with a brass trophy.",
-            "He hides a rag in the lab vent and returns to records.",
-            "The victim had discovered Morgan's equipment theft.",
-            "Review the case in your inventory to make an accusation.");
-
+        solventReport.lockedHint = "The cover's screwed down.";
+        accessLog = clue("Door log and memo", records, 250, 245,
+            "Room 204. Morgan's staff card was used at 5:12 and again at 5:18.",
+            "A memo is clipped to the printout.",
+            "Morgan - we're still missing six tablets. Meet me tomorrow morning. We need to sort this out. - Woffinden");
+        cameraFootage = clue("Security recording", security, 250, 245,
+            "5:15. Through the open classroom door, you can see Morgan and Mr. Woffinden arguing.",
+            "Morgan picks up a trophy from the desk and swings. Mr. Woffinden falls out of view.",
+            "Morgan leaves carrying a rag. He goes into the lab, then comes back without it.");
         cameraFootage.image = GamePanel.loadImage("camera-archive.png");
         cameraFootage.content.speakerImage = cameraFootage.image;
 
@@ -95,22 +83,25 @@ public class RoomManager {
         records.containers.add(recordsSafe);
 
         alex = new Suspect("Alex", GamePanel.loadImage("alex-suspect.png"), room1, new Coordinate(390, 200),
-            Arrays.asList("I waited in the library after class.", "I did not meet Mr. Woffinden. Why do you ask?"), meetingNote,
-            Arrays.asList("I wrote the note, but he never came.",
-                "Maya supervised my study session at 5:15.", "Take my library key. The register proves I was there."));
+            Arrays.asList("They said I should wait here. Do you know when I can go home?",
+                "I was in the library after class. You can ask Maya."), meetingNote,
+            Arrays.asList("Yeah, that's mine. I needed him to sign my trip form.",
+                "He never showed up. I thought he'd forgotten.",
+                "Here, take the library key. I help Maya close up most days."));
         alex.reward = libraryKey;
         maya = new Suspect("Maya", GamePanel.loadImage("maya-suspect.png"), library, new Coordinate(520, 200),
-            Arrays.asList("Alex was here during the attack. Check the register.",
-                "Morgan was repairing a vent in the lab this afternoon."), solventReport,
-            Arrays.asList("That rag belongs to Morgan's maintenance kit.",
-                "He said he was filing records during the attack.",
-                "Take this spare records key. Check his story."));
+            Arrays.asList("Alex was here until half past five. I signed him out myself.",
+                "Morgan came through earlier. Said he had a vent to fix in the lab."), solventReport,
+            Arrays.asList("That's from Morgan's kit. He puts his name on everything.",
+                "He told me he'd been in records all evening. Why would that be in the lab?",
+                "I've got a spare key to records. Here."));
         maya.reward = recordsKey;
         morgan = new Suspect("Morgan", GamePanel.loadImage("morgan-suspect.png"), records, new Coordinate(450, 200),
-            Arrays.asList("I was filing records all evening.", "I never went near the classroom."), accessLog,
-            Arrays.asList("The log says I was there? I was only cleaning.",
-                "I had to speak to him about the equipment audit.",
-                "There is nothing else you need to know."));
+            Arrays.asList("I've been catching up on paperwork. Ask anyone, it piles up.",
+                "No, I haven't seen Woffinden since lunch."), accessLog,
+            Arrays.asList("My card? Right. I did stop by his room.",
+                "He wanted to talk about some missing tablets. I told him I'd look into it.",
+                "It was a two-minute conversation. That's all."));
         room1.suspects.add(alex);
         library.suspects.add(maya);
         records.suspects.add(morgan);
@@ -123,15 +114,15 @@ public class RoomManager {
         return room;
     }
 
-    private static Item item(String name, String art, int x, int y, String... lines){
+    private static Item item(String name, String art, int x, int y, String description){
         ImageIcon image = GamePanel.loadImage(art);
-        Item item = new Item(new Coordinate(x, y), image, dialogue(image, name, lines));
+        Item item = new Item(new Coordinate(x, y), image, description);
         item.name = name;
         return item;
     }
 
-    private static Item key(String name, Room target, int x, int y, String... lines){
-        Item key = item(name, "classroom-key.png", x, y, lines);
+    private static Item key(String name, Room target, int x, int y, String description){
+        Item key = item(name, "classroom-key.png", x, y, description);
         key.unlocksRoom = target;
         return key;
     }
