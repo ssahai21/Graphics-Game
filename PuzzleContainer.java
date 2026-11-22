@@ -1,6 +1,5 @@
 import java.util.ArrayList;
 
-/** A room object that keeps its contents inaccessible until its puzzle is solved. */
 public class PuzzleContainer {
     public final String name;
     public final Coordinate location;
@@ -9,22 +8,30 @@ public class PuzzleContainer {
     public final ArrayList<Clue> clues = new ArrayList<>();
     public boolean collected;
 
-    public PuzzleContainer(String name, Coordinate location, PuzzleManager puzzle){
+    public PuzzleContainer(String name, Coordinate location, PuzzleManager puzzle) {
         this.name = name;
         this.location = location;
         this.puzzle = puzzle;
     }
-    public boolean contains(int x, int y){
+
+    public boolean contains(int x, int y) {
         return x >= location.x && x < location.x + 100 && y >= location.y && y < location.y + 100;
     }
-    public boolean collect(){
-        if(!puzzle.solved || collected) return false;
-        collected = true;
-        for(Item item : items){
-            if(!PlayerInventory.items.contains(item)) PlayerInventory.items.add(item);
+
+    public boolean collect() {
+        if (!puzzle.solved || collected) {
+            return false;
         }
-        for(Clue clue : clues){
-            if(!PlayerInventory.clues.contains(clue)) PlayerInventory.clues.add(clue);
+        collected = true;
+        for (Item item : items) {
+            if (!PlayerInventory.items.contains(item)) {
+                PlayerInventory.items.add(item);
+            }
+        }
+        for (Clue clue : clues) {
+            if (!PlayerInventory.clues.contains(clue)) {
+                PlayerInventory.clues.add(clue);
+            }
         }
         return true;
     }

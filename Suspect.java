@@ -9,8 +9,6 @@ public class Suspect {
     public ImageIcon image;
     public Room location;
     public Coordinate position;
-    public boolean moving;
-    public boolean questioned;
     public boolean questionedWithEvidence;
     private final DialougeManager conversation;
     private final DialougeManager evidenceConversation;
@@ -19,26 +17,33 @@ public class Suspect {
     public boolean rewardGiven;
 
     public Suspect(String name, ImageIcon image, Room location, Coordinate position,
-                   List<String> dialouge, Clue relevantClue, List<String> evidenceDialouge){
+        List<String> dialouge, Clue relevantClue, List<String> evidenceDialouge) {
         this.name = name;
         this.image = image;
         this.location = location;
         this.position = position;
-        this.conversation = new DialougeManager(image, name, new ArrayList<>(dialouge), "");
+        this.conversation = new DialougeManager(image, name, new ArrayList<>(dialouge));
         this.relevantClue = relevantClue;
-        this.evidenceConversation = new DialougeManager(image, name, new ArrayList<>(evidenceDialouge), "");
+        this.evidenceConversation = new DialougeManager(image, name, new ArrayList<>(evidenceDialouge));
     }
 
-    public boolean contains(int x, int y){
+    public boolean contains(int x, int y) {
         return x >= position.x && x < position.x + WIDTH
-            && y >= position.y && y < position.y + HEIGHT;
+        && y >= position.y && y < position.y + HEIGHT;
     }
 
-    public DialougeManager question(List<Clue> evidence){
+    public DialougeManager question(List<Clue> evidence) {
         boolean hasEvidence = relevantClue != null && evidence.contains(relevantClue);
-        questioned = true;
-        if(hasEvidence) questionedWithEvidence = true;
-        DialougeManager dialogue = hasEvidence ? evidenceConversation : conversation;
+        if (hasEvidence) {
+            questionedWithEvidence = true;
+        }
+        DialougeManager dialogue;
+        if (hasEvidence) {
+            dialogue = evidenceConversation;
+        }
+        else {
+            dialogue = conversation;
+        }
         dialogue.reset();
         return dialogue;
     }

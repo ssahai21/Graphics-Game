@@ -1,6 +1,5 @@
-import java.awt.image.ImageConsumer;
-import java.util.*;
-import javax.swing.*;
+import java.util.ArrayList;
+import javax.swing.ImageIcon;
 
 public class PlayerInventory {
     public static ImageIcon img = new ImageIcon("images/case-desk.png");
@@ -8,7 +7,7 @@ public class PlayerInventory {
     public static boolean showing = false;
     public static Item heldItem;
 
-    public static boolean isHolding(Item item){
+    public static boolean isHolding(Item item) {
         return item != null && heldItem == item && items.contains(item);
     }
 
