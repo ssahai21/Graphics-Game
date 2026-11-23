@@ -59,7 +59,7 @@ public class RoomManager {
         screwdriver = item("Screwdriver", "screwdriver.png", 250, 245, "Flat head. Small enough for the vent screws.");
 
         meetingNote = clue("Alex's note", classroom, 150, 250,
-            "Mr. Woffinden - could you sign my trip form? I'll be in the library at 5:10. - Alex");
+            "Mr. Smith - could you sign my field trip form? I'll be in the library at 5:10. - Alex");
         libraryLedger = clue("Library sign-in sheet", library, 400, 245,
             "Alex Chen. In at 5:00, out at 5:30. Maya's initials are beside both times.",
             "There's a note underneath: Stayed to finish his trip form.");

@@ -1,7 +1,7 @@
 public class StoryScene {
     public static final StoryScene OPENING = new StoryScene(new String[]{
         "You get the call just after six. A teacher at Liberty High has been found dead. The school is keeping everyone inside until you arrive.",
-        "It's Mr. Woffinden, in room 204. Alex, Maya, and Morgan were the last three people seen inside the school.",
+        "Alex, Maya, and Morgan were the last three people seen inside the school.",
         "The office left a key at reception. You'll need to look through his room and speak to the people who stayed behind.",
         "A / D - move left and right.\nE - go through a nearby door.\nClick objects and people to investigate.\nClick to advance conversations.",
         "I - open or close your inventory.\nClick a key or tool to hold it. Click a clue to read it.\nLook around the room for puzzle clues.\nChoose Review Case in your inventory when you're ready to accuse someone."
